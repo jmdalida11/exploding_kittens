@@ -24,7 +24,7 @@ func main() {
 		switch g.GetState() {
 		case game.PlayerMoveState:
 			fmt.Println("\n== Player Cards ==")
-			showPlayerCards(currentPlayer, g)
+			showPlayerCards(currentPlayer)
 			fmt.Print("\nEnter move for player " + currentPlayer.Name + ": ")
 		case game.BackExplodingKittenToDeckState:
 			fmt.Printf("You Drawn Exploding Kitten! Choose where to put the Exploding Kitten card. (top of the deck) 0 to %d: ", g.GetDeckCount())
@@ -68,8 +68,8 @@ func makeMove(g *game.Game, action game.Action) {
 	}
 }
 
-func showPlayerCards(player *game.Player, g *game.Game) {
+func showPlayerCards(player *game.Player) {
 	for _, card := range player.Hands {
-		game.CardEffect(card, g)
+		fmt.Println(card)
 	}
 }
