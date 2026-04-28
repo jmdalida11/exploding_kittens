@@ -1,0 +1,10 @@
+{
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "go.useLanguageServer": true,
+  "editor.formatOnSave": true,
+  "explorer.compactFolders": false,
+  "cSpell.words": ["Cattermelon", "Ralphing", "Tacocat"],
+  "editor.defaultFormatter": "golang.go"
+}
