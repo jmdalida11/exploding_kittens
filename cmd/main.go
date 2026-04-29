@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/jmdalida11/exploding-kittens/internal/game"
 )
@@ -27,7 +28,7 @@ func main() {
 			showPlayerCards(currentPlayer)
 			fmt.Print("\nEnter move for player " + currentPlayer.Name + ": ")
 		case game.BackExplodingKittenToDeckState:
-			fmt.Printf("You Drawn Exploding Kitten! Choose where to put the Exploding Kitten card. (top of the deck) 0 to %d: ", g.GetDeckCount())
+			fmt.Printf("You've Drawn Exploding Kitten! Choose where to put the Exploding Kitten card. (top of the deck) 0 to %d: ", g.GetDeckCount())
 		case game.PlayerExploded:
 			fmt.Printf("Player %s has been exploded!\n", currentPlayer.Name)
 			g.SetState(game.PlayerMoveState)
@@ -39,6 +40,13 @@ func main() {
 				return
 			}
 
+			continue
+		case game.SeeTheFutureState:
+			fmt.Println()
+			for i, card := range g.SeeTop3CardInDeck() {
+				fmt.Println(strconv.Itoa(i+1) + ". " + string(card))
+			}
+			g.SetState(game.PlayerMoveState)
 			continue
 		}
 

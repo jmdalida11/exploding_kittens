@@ -12,6 +12,8 @@ const (
 	BackExplodingKittenToDeckState
 	PlayerExploded
 	CardEffectState
+	SeeTheFutureState
+	FavorState
 )
 
 type Game struct {
@@ -21,6 +23,7 @@ type Game struct {
 	playerPositionId  []string
 	activePlayerIndex int
 	state             GameState
+	isAttacked        bool
 }
 
 func NewGame() *Game {
@@ -30,6 +33,7 @@ func NewGame() *Game {
 		players:           make(map[string]*Player),
 		activePlayerIndex: 0,
 		state:             PlayerMoveState,
+		isAttacked:        false,
 	}
 }
 
@@ -165,6 +169,40 @@ func (game *Game) ReturnExplodingCardToDeck(action Action) {
 	}
 }
 
+func (game *Game) SeeTop3CardInDeck() []Card {
+	n := len(game.deck)
+	var cards []Card = nil
+	if n >= 3 {
+		cards = slices.Clone(game.deck[n-3:])
+	} else {
+		cards = slices.Clone(game.deck)
+	}
+	slices.Reverse(cards)
+	return cards
+}
+
+func (game *Game) activateCardEffect(card Card) {
+	switch card {
+	case SeeTheFuture:
+		game.state = SeeTheFutureState
+	case Attack:
+		game.MoveToNextPlayer()
+		game.isAttacked = true
+	case Skip:
+		if game.isAttacked {
+			game.isAttacked = false
+		} else {
+			game.MoveToNextPlayer()
+		}
+	case Favor:
+		game.state = FavorState
+	case Shuffle:
+		randomizer(game.deck)
+	default:
+		println("not a valid card to activate")
+	}
+}
+
 func (game *Game) ActivePlayerMove(action Action) {
 	if game.state != PlayerMoveState {
 		fmt.Println("Not a valid state to do the current action")
@@ -189,13 +227,17 @@ func (game *Game) ActivePlayerMove(action Action) {
 				game.state = PlayerExploded
 			}
 		} else {
-			game.MoveToNextPlayer()
+			if game.isAttacked {
+				game.isAttacked = false
+			} else {
+				game.MoveToNextPlayer()
+			}
 		}
 	case ActivateCardMove:
 		card := action.card
 		player := game.GetActivePlayer()
 		if game.GetActivePlayer().RemoveCard(card) {
-			CardEffect(card, game)
+			game.activateCardEffect(card)
 		} else {
 			fmt.Printf("Player %s has no card %s", player.Name, card)
 		}
