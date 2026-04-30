@@ -3,10 +3,10 @@ package game
 import "slices"
 
 type Action struct {
-	action       string
-	card         Card
-	position     int
-	targetPlayer *Player
+	Action       string
+	Card         Card
+	Position     int
+	TargetPlayer string
 }
 
 type Player struct {

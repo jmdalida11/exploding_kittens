@@ -13,9 +13,15 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	g := game.NewGame()
 
-	g.AddPlayer("a", "A")
-	g.AddPlayer("b", "B")
-	g.AddPlayer("c", "C")
+	players := make(map[string]string)
+
+	players["a"] = "A"
+	players["b"] = "B"
+	players["c"] = "C"
+
+	for key, player := range players {
+		g.AddPlayer(key, player)
+	}
 
 	g.Start()
 
@@ -29,6 +35,8 @@ func main() {
 			fmt.Print("\nEnter move for player " + currentPlayer.Name + ": ")
 		case game.BackExplodingKittenToDeckState:
 			fmt.Printf("You've Drawn Exploding Kitten! Choose where to put the Exploding Kitten card. (top of the deck) 0 to %d: ", g.GetDeckCount())
+		case game.FavorState:
+			fmt.Printf("Enter player id: ")
 		case game.PlayerExploded:
 			fmt.Printf("Player %s has been exploded!\n", currentPlayer.Name)
 			g.SetState(game.PlayerMoveState)
@@ -48,13 +56,23 @@ func main() {
 			}
 			g.SetState(game.PlayerMoveState)
 			continue
+		case game.GiveCardState:
+			fmt.Printf("\n%s", "Player "+g.GetTargetedPlayer().Name+" will give Player "+g.GetActivePlayer().Name+" a card.\n")
+			fmt.Println("\n== Player Cards ==")
+			showPlayerCards(g.GetTargetedPlayer())
+			fmt.Print("(Player " + g.GetTargetedPlayer().Name + ") Enter card name to give: ")
 		}
 
 		if scanner.Scan() {
 			input := scanner.Text()
 
-			if g.GetState() == game.BackExplodingKittenToDeckState {
+			switch g.GetState() {
+			case game.BackExplodingKittenToDeckState:
 				input = game.BackExplodingKittenToDeckMove + " " + input
+			case game.FavorState:
+				input = game.FavorMove + " " + input
+			case game.GiveCardState:
+				input = game.GiveCardMove + " " + input
 			}
 
 			action, err := game.ParseMove(input)
@@ -73,6 +91,24 @@ func makeMove(g *game.Game, action game.Action) {
 		g.ActivePlayerMove(action)
 	case game.BackExplodingKittenToDeckState:
 		g.ReturnExplodingCardToDeck(action)
+	case game.FavorState:
+		if action.TargetPlayer != g.GetActivePlayer().Id && g.SetTargetedPlayer(action.TargetPlayer) {
+			if len(g.GetTargetedPlayer().Hands) == 0 {
+				g.SetState(game.PlayerMoveState)
+			} else {
+				g.SetState(game.GiveCardState)
+			}
+		} else {
+			fmt.Println("Invalid Player Id")
+		}
+	case game.GiveCardState:
+		targetPlayer := g.GetTargetedPlayer()
+		if targetPlayer.RemoveCard(action.Card) {
+			g.GetActivePlayer().AddCard(action.Card)
+			g.SetState(game.PlayerMoveState)
+		} else {
+			fmt.Println("Invalid card " + action.Card)
+		}
 	}
 }
 

@@ -14,6 +14,7 @@ const (
 	CardEffectState
 	SeeTheFutureState
 	FavorState
+	GiveCardState
 )
 
 type Game struct {
@@ -24,6 +25,7 @@ type Game struct {
 	activePlayerIndex int
 	state             GameState
 	isAttacked        bool
+	targetedPlayerId  string
 }
 
 func NewGame() *Game {
@@ -73,6 +75,19 @@ func (game *Game) SetState(state GameState) {
 	game.state = state
 }
 
+func (game *Game) GetTargetedPlayer() *Player {
+	player := game.players[game.targetedPlayerId]
+	return player
+}
+
+func (game *Game) SetTargetedPlayer(id string) bool {
+	_, exist := game.players[id]
+	if exist {
+		game.targetedPlayerId = id
+	}
+	return exist
+}
+
 func (game *Game) GetDeckCount() int {
 	return len(game.deck)
 }
@@ -98,6 +113,14 @@ func (game *Game) DrawCardFromDeck() Card {
 
 func (game *Game) GetActivePlayer() *Player {
 	return game.players[game.playerPositionId[game.activePlayerIndex]]
+}
+
+func (game *Game) GetPlayers() []Player {
+	players := make([]Player, len(game.players))
+	for _, player := range game.players {
+		players = append(players, *player)
+	}
+	return players
 }
 
 func (game *Game) DrawActivePlayerCard() Card {
@@ -160,8 +183,8 @@ func (game *Game) Start() {
 
 func (game *Game) ReturnExplodingCardToDeck(action Action) {
 	deckSize := len(game.deck)
-	if action.position >= 0 && action.position <= deckSize {
-		game.deck = slices.Insert(game.deck, deckSize-action.position, ExplodingKitten)
+	if action.Position >= 0 && action.Position <= deckSize {
+		game.deck = slices.Insert(game.deck, deckSize-action.Position, ExplodingKitten)
 		game.MoveToNextPlayer()
 		game.state = PlayerMoveState
 	} else {
@@ -211,7 +234,7 @@ func (game *Game) ActivePlayerMove(action Action) {
 
 	activePlayer := game.GetActivePlayer()
 
-	switch action.action {
+	switch action.Action {
 	case EndMove:
 		cardDrawn := game.DrawActivePlayerCard()
 		if cardDrawn == ExplodingKitten {
@@ -234,7 +257,7 @@ func (game *Game) ActivePlayerMove(action Action) {
 			}
 		}
 	case ActivateCardMove:
-		card := action.card
+		card := action.Card
 		player := game.GetActivePlayer()
 		if game.GetActivePlayer().RemoveCard(card) {
 			game.activateCardEffect(card)
@@ -242,6 +265,6 @@ func (game *Game) ActivePlayerMove(action Action) {
 			fmt.Printf("Player %s has no card %s", player.Name, card)
 		}
 	default:
-		fmt.Println("Invalid action: " + action.action)
+		fmt.Println("Invalid action: " + action.Action)
 	}
 }
