@@ -15,6 +15,7 @@ const (
 	SeeTheFutureState
 	FavorState
 	GiveCardState
+	StealCardState
 )
 
 type Game struct {
@@ -48,6 +49,17 @@ func popLastCard(cards []Card) (Card, []Card) {
 func (game *Game) generateDeckCard(card Card, count int) {
 	for range count {
 		game.deck = append(game.deck, card)
+	}
+}
+
+func (game *Game) generatePlayerCards() {
+	for _, player := range game.players {
+		player.Hands = append(player.Hands, Defuse)
+	}
+	for range 4 {
+		for _, player := range game.players {
+			player.Hands = append(player.Hands, game.DrawCardFromDeck())
+		}
 	}
 }
 
@@ -130,17 +142,6 @@ func (game *Game) DrawActivePlayerCard() Card {
 	return cardDrawn
 }
 
-func (game *Game) generatePlayerCards() {
-	for _, player := range game.players {
-		player.Hands = append(player.Hands, Defuse)
-	}
-	for range 4 {
-		for _, player := range game.players {
-			player.Hands = append(player.Hands, game.DrawCardFromDeck())
-		}
-	}
-}
-
 func (game *Game) MoveToNextPlayer() {
 	for true {
 		game.activePlayerIndex += 1
@@ -183,8 +184,8 @@ func (game *Game) Start() {
 
 func (game *Game) ReturnExplodingCardToDeck(action Action) {
 	deckSize := len(game.deck)
-	if action.Position >= 0 && action.Position <= deckSize {
-		game.deck = slices.Insert(game.deck, deckSize-action.Position, ExplodingKitten)
+	if action.Value >= 0 && action.Value <= deckSize {
+		game.deck = slices.Insert(game.deck, deckSize-action.Value, ExplodingKitten)
 		game.MoveToNextPlayer()
 		game.state = PlayerMoveState
 	} else {
@@ -222,7 +223,7 @@ func (game *Game) activateCardEffect(card Card) {
 	case Shuffle:
 		randomizer(game.deck)
 	default:
-		println("not a valid card to activate")
+		fmt.Println("not a valid card to activate")
 	}
 }
 
@@ -263,6 +264,55 @@ func (game *Game) ActivePlayerMove(action Action) {
 			game.activateCardEffect(card)
 		} else {
 			fmt.Printf("Player %s has no card %s", player.Name, card)
+		}
+	case ComboMove:
+		if !game.SetTargetedPlayer(action.TargetPlayer) {
+			fmt.Println("Target player does not exist")
+			return
+		}
+		if game.GetActivePlayer().Id == game.GetTargetedPlayer().Id {
+			fmt.Println("You can't target yourself")
+			return
+		}
+
+		switch action.Value {
+		case 2:
+			if !game.GetActivePlayer().HasCardOf(action.Card) {
+				fmt.Println("You don't have " + action.Card + " card in your hand")
+				return
+			}
+			if game.GetActivePlayer().CardTypeCount(action.Card) < 2 {
+				fmt.Println("You don't have enough of this card")
+				return
+			}
+			game.GetActivePlayer().RemoveCard(action.Card)
+			game.SetState(StealCardState)
+		case 3:
+			if !game.GetActivePlayer().HasCardOf(action.Card) {
+				fmt.Println("You don't have " + action.Card + " card in your hand")
+				return
+			}
+			if game.GetActivePlayer().CardTypeCount(action.Card) < 3 {
+				fmt.Println("You don't have enough of this card")
+				return
+			}
+			targetCard := action.Cards[0]
+			if !isCardValid(targetCard) {
+				fmt.Println("Invalid card target card " + targetCard)
+				return
+			}
+			for range 3 {
+				game.GetActivePlayer().RemoveCard(action.Card)
+			}
+			if game.GetTargetedPlayer().RemoveCard(targetCard) {
+				game.GetActivePlayer().AddCard(targetCard)
+				fmt.Println("Congrats! You steal " + targetCard + " from " + Card(game.GetTargetedPlayer().Name))
+			} else {
+				fmt.Println("Sorry, Your target player has no " + targetCard + " card in his/her hand")
+			}
+		case 5:
+		default:
+			fmt.Println("Invalid combo")
 		}
 	default:
 		fmt.Println("Invalid action: " + action.Action)

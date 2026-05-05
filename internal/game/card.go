@@ -1,5 +1,7 @@
 package game
 
+import "slices"
+
 type Card string
 
 const (
@@ -17,3 +19,23 @@ const (
 	BeardCat           Card = "BeardCat"
 	RainbowRalphingCat Card = "RainbowRalphingCat"
 )
+
+var AllCards = []Card{
+	ExplodingKitten,
+	Defuse,
+	Nope,
+	SeeTheFuture,
+	Attack,
+	Skip,
+	Favor,
+	Shuffle,
+	Tacocat,
+	Cattermelon,
+	HairyPotatoCat,
+	BeardCat,
+	RainbowRalphingCat,
+}
+
+func isCardValid(card Card) bool {
+	return slices.Contains(AllCards, card)
+}
