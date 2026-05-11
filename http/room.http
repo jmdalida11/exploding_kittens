@@ -1,0 +1,9 @@
+### Create a new room
+POST http://localhost:3000/create-room
+Content-Type: application/json
+
+{
+}
+
+### Get all users
+GET http://localhost:3000/get-rooms
