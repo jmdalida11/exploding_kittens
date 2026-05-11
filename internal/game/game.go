@@ -104,6 +104,10 @@ func (game *Game) GetDeckCount() int {
 	return len(game.deck)
 }
 
+func (game *Game) AddToDiscardPile(card Card) {
+	game.discardPile = append(game.discardPile, card)
+}
+
 func (game *Game) AddPlayer(id string, name string) {
 	if _, exist := game.players[id]; exist {
 		fmt.Println("Id % is already exist", id)
@@ -227,6 +231,28 @@ func (game *Game) activateCardEffect(card Card) {
 	}
 }
 
+func (game *Game) FavorCard(action Action) {
+	if action.TargetPlayer != game.GetActivePlayer().Id && game.SetTargetedPlayer(action.TargetPlayer) {
+		if len(game.GetTargetedPlayer().Hands) == 0 {
+			game.SetState(PlayerMoveState)
+		} else {
+			game.SetState(GiveCardState)
+		}
+	} else {
+		fmt.Println("Invalid Player Id")
+	}
+}
+
+func (game *Game) GiveCard(action Action) {
+	targetPlayer := game.GetTargetedPlayer()
+	if targetPlayer.RemoveCard(action.Card) {
+		game.GetActivePlayer().AddCard(action.Card)
+		game.SetState(PlayerMoveState)
+	} else {
+		fmt.Println("Invalid card " + action.Card)
+	}
+}
+
 func (game *Game) ActivePlayerMove(action Action) {
 	if game.state != PlayerMoveState {
 		fmt.Println("Not a valid state to do the current action")
@@ -242,10 +268,11 @@ func (game *Game) ActivePlayerMove(action Action) {
 			if activePlayer.RemoveCard(Defuse) {
 				game.state = BackExplodingKittenToDeckState
 				activePlayer.RemoveCard(ExplodingKitten)
+				game.AddToDiscardPile(Defuse)
 			} else {
 				activePlayer.IsExploded = true
 				for _, card := range activePlayer.Hands {
-					game.discardPile = append(game.discardPile, card)
+					game.AddToDiscardPile(card)
 				}
 				activePlayer.Hands = []Card{}
 				game.state = PlayerExploded
@@ -262,6 +289,7 @@ func (game *Game) ActivePlayerMove(action Action) {
 		player := game.GetActivePlayer()
 		if game.GetActivePlayer().RemoveCard(card) {
 			game.activateCardEffect(card)
+			game.AddToDiscardPile(card)
 		} else {
 			fmt.Printf("Player %s has no card %s", player.Name, card)
 		}
@@ -286,6 +314,8 @@ func (game *Game) ActivePlayerMove(action Action) {
 				return
 			}
 			game.GetActivePlayer().RemoveCard(action.Card)
+			game.AddToDiscardPile(action.Card)
+			game.AddToDiscardPile(action.Card)
 			game.SetState(StealCardState)
 		case 3:
 			if !game.GetActivePlayer().HasCardOf(action.Card) {
@@ -303,6 +333,7 @@ func (game *Game) ActivePlayerMove(action Action) {
 			}
 			for range 3 {
 				game.GetActivePlayer().RemoveCard(action.Card)
+				game.AddToDiscardPile(action.Card)
 			}
 			if game.GetTargetedPlayer().RemoveCard(targetCard) {
 				game.GetActivePlayer().AddCard(targetCard)
@@ -311,6 +342,22 @@ func (game *Game) ActivePlayerMove(action Action) {
 				fmt.Println("Sorry, Your target player has no " + targetCard + " card in his/her hand")
 			}
 		case 5:
+			for _, card := range action.Cards {
+				if !game.GetActivePlayer().HasCardOf(card) {
+					fmt.Println("Sorry, You don't have this card " + card)
+					return
+				}
+			}
+			if slices.Contains(game.discardPile, action.Card) {
+				game.GetActivePlayer().AddCard(action.Card)
+				for _, card := range action.Cards {
+					game.GetActivePlayer().RemoveCard(card)
+					game.AddToDiscardPile(card)
+				}
+				fmt.Println("You acquired card " + action.Card)
+			} else {
+				fmt.Println("Card does not exist in discard pile: " + action.Card)
+			}
 		default:
 			fmt.Println("Invalid combo")
 		}

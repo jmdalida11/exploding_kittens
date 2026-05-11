@@ -92,23 +92,9 @@ func makeMove(g *game.Game, action game.Action) {
 	case game.BackExplodingKittenToDeckState:
 		g.ReturnExplodingCardToDeck(action)
 	case game.FavorState:
-		if action.TargetPlayer != g.GetActivePlayer().Id && g.SetTargetedPlayer(action.TargetPlayer) {
-			if len(g.GetTargetedPlayer().Hands) == 0 {
-				g.SetState(game.PlayerMoveState)
-			} else {
-				g.SetState(game.GiveCardState)
-			}
-		} else {
-			fmt.Println("Invalid Player Id")
-		}
+		g.FavorCard(action)
 	case game.GiveCardState:
-		targetPlayer := g.GetTargetedPlayer()
-		if targetPlayer.RemoveCard(action.Card) {
-			g.GetActivePlayer().AddCard(action.Card)
-			g.SetState(game.PlayerMoveState)
-		} else {
-			fmt.Println("Invalid card " + action.Card)
-		}
+		g.GiveCard(action)
 	}
 }
 
